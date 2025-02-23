@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบ Drag & Drop</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .container { width: 50%; margin: auto; }
+        .block {
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin: 10px 0; 
+            cursor: move; 
+            background: #f9f9f9;
+        }
+        .delete-btn { float: right; cursor: pointer; color: red; }
+        .wrapper {
+            display: flex;
+            justify-content: space-between;
+        }
+        .dropzone {
+            width: 48%;
+            min-height: 300px;
+            border: 1px dashed #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <button onclick="addBlock()">เพิ่มบล็อก</button>
+        <div class="wrapper">
+            <div id="left-column" class="dropzone"></div>
+            <div id="right-column" class="dropzone"></div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function(){
+            loadContent();
+
+            
+
+            let leftSortable = new Sortable(document.getElementById("left-column"), {
+                group: "shared",
+                animation: 150,
+                onEnd: function () { saveOrder(); }
+            });
+        
+            let rightSortable = new Sortable(document.getElementById("right-column"), {
+                group: "shared",
+                animation: 150,
+                onEnd: function () { saveOrder(); }
+            });
+
+            $(document).on("blur", ".editable", function(){
+                let id = $(this).data("id");
+                let content = $(this).html();
+                $.post("save.php", { id: id, content: content });
+            });
+
+            $(document).on("click", ".delete-btn", function(){
+                let id = $(this).data("id");
+                $.post("delete.php", { id: id }, function(){ loadContent(); });
+            });
+        });
+
+        function addBlock(){ $.post("add.php", function(){ loadContent(); }); }
+
+        function loadContent(){ $.get("load.php", function(data){ $("#left-column").html(data); }); }
+        function loadContent(){ $.get("load.php", function(data){ $("#right-column").html(data); }); }
+
+
+        function saveOrder(){
+            let order = [];
+            $(".dropzone .block").each(function(index){
+                let column = $(this).parent().attr("id") === "left-column" ? "left" : "right";
+                order.push({ id: $(this).data("id"), position: index + 1, column: column });
+            });
+        
+            $.post("reorder.php", { order: JSON.stringify(order) });
+        }
+    </script>
+
+</body>
+</html>
